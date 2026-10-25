@@ -217,7 +217,9 @@ w = smooth(TH_BLEND - 3, TH_BLEND + 9, ath) * smooth(X0, X0 + 0.3, x) * (1 - smo
 w = np.maximum(w, smooth(RIM[0], RIM[0] + 0.3, x) * (1 - smooth(RIM[1] - 0.3, RIM[1], x)) * ~nt)
 sx = smooth(XS0 - 0.3, XS0 + 0.3, x)
 w *= np.where(sx < 0.5, np.abs(rho - R(x)) < 0.35, np.abs(x - Xinv(rho)) < 0.35)   # solo la piel de revolución
-hb = bottom_tex(x, th)
+# coordenada de textura = longitud de arco sobre el perfil (en la cara del plato x apenas cambia: evita rayas radiales)
+xt = x + sx * np.clip(R(XS0) - rho, 0, None)
+hb = bottom_tex(xt, th)
 rn = rho + w * (1 - sx) * (R(x) + hb - rho)
 # piel real (fuera de escudos, asas, muñones y canto): mismo afilado de molduras
 piel = (np.abs(rho - R(x)) < 0.35) & ~nt & ~((x > 14) & (x < 106) & (ath < 55)) & (x < RIM[0])

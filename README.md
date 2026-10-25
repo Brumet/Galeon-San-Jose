@@ -55,6 +55,16 @@
 |---|---|
 | ![lisa](docs/img/05_revolucion_lisa_v1.jpg) | ![final](docs/img/09_fondo_final_abajo.jpg) |
 
+**Plato trasero:** en el escaneo, el canto del plato quedó como láminas sueltas. Se eliminó todo el canto y se recreó en el contorno completo con el perfil medido. La textura se proyecta según la longitud de arco sobre el perfil, porque proyectarla según la posición a lo largo del eje dejaba rayas radiales en la cara vertical.
+
+| Antes (arriba e izquierda) / después (derecha) | Plato final |
+|---|---|
+| ![plato](docs/img/24_plato_trasero_roto_vs_recreado.jpg) | ![plato final](docs/img/25_plato_trasero_final.jpg) |
+
+Las **molduras** se afilan con una máscara de enfoque aplicada al perfil medido (σ 0,12 mm), en todo el contorno, para que los anillos tengan el canto marcado:
+
+![molduras](docs/img/26_culata_molduras_v7.jpg)
+
 ## 4. Trasplantar la textura real de la corrosión
 
 Una superficie recreada lisa se ve "de plástico" junto al bronce corroído. Para evitarlo:
