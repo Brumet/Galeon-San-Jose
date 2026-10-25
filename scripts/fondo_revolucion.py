@@ -11,7 +11,10 @@ import pymeshlab as ml, numpy as np, sys, os, time
 def log(*a): print(*a, flush=True)
 src, work = sys.argv[1], sys.argv[2]
 TH_BLEND, TH_CUT = 95.0, 112.0          # grados desde arriba
-X0, X1 = 0.4, 206.6                      # tramo de revolución (boca .. inicio del cascabel)
+# en la cúpula trasera el escaneo es más pobre y su borde está deshilachado: el corte sube a 80°
+CUT = lambda x: TH_CUT - (TH_CUT - 80.0) * np.clip((x - 206.4) / 0.4, 0, 1)
+BLEND = lambda x: CUT(x) - (TH_CUT - TH_BLEND)
+X0, X1 = 0.4, 208.1                      # tramo de revolución (boca .. inicio del cascabel)
 DS = 0.04                                # separación de puntos sintéticos (mm)
 # muñones, valores iniciales (trun.py): xc, zc relativo al eje, radio, extremo en |y|; se reajustan con la mitad de arriba
 TRUN = {+1: (117.793, -3.636, 4.704, 21.682), -1: (117.105, -5.175, 4.489, 21.366)}
@@ -40,6 +43,9 @@ DELTA = prof - prof0                                       # corrección que se 
 R = lambda x: np.interp(x, xb, prof)
 # canto del plato trasero: el escaneo deja láminas sueltas; se recrea completo (todo el contorno) con el perfil
 RIM = (204.3, 206.6)
+RAMPA = 0.8                                # mm de fundido entre el canto recreado y la cara real
+# arranque inferior del cascabel: se protege solo lo que sobresale de la cúpula (el volumen del cascabel)
+CUELLO = lambda x, dy, rho: (x > 206.4) & (np.abs(dy) < 2.6) & (x - Xinv(rho) > 0.35)
 # plato trasero (cara casi vertical): ahí se corrige en x en vez de en radio
 XS0 = 204.6   # (con X1 = 205.8 el plato trasero queda con datos reales del escaneo)
 _m = (xb >= XS0) & (xb <= X1)
@@ -107,12 +113,15 @@ def in_trunnion(x, dy, dz, side, pad):
 
 rho, th, dy, dz = cyl(V); x = V[:, 0]; ath = np.abs(th)
 trun_any = in_trunnion(x, dy, dz, +1, 0.6) | in_trunnion(x, dy, dz, -1, 0.6)
-body = (x > X0) & (x < X1) & ~trun_any
-keep = ~(body & (ath >= TH_CUT))
+neck = CUELLO(x, dy, rho)
+from scipy.spatial import cKDTree
+huella = cKDTree(np.c_[dy, V[:, 2] - cz(x)][neck & (x < 208.6)])      # huella del cuello sobre la cúpula
+body = (x > X0) & (x < X1) & ~trun_any & ~neck
+keep = ~(body & (ath >= CUT(x)))
 keep &= ~((x > RIM[0]) & (x < RIM[1]) & ~trun_any)          # canto del plato: fuera todo lo real
 # banda de fusión: llevar el radio real hacia el perfil
-bl = body & (ath >= TH_BLEND) & (ath < TH_CUT)
-w = smooth(TH_BLEND, TH_CUT, ath[bl])
+bl = body & (ath >= BLEND(x)) & (ath < CUT(x))
+w = smooth(0, 1, (ath[bl] - BLEND(x[bl])) / (CUT(x[bl]) - BLEND(x[bl])))
 sx = smooth(XS0 - 0.3, XS0 + 0.3, x[bl])                  # 0 caña, 1 plato trasero
 rn = rho[bl] - w * (1 - sx) * tex(TL, x[bl], th[bl])      # quita bultos, deja la textura
 xn = x[bl] + w * sx * (Xinv(rho[bl]) - x[bl])
@@ -166,7 +175,7 @@ tx = np.gradient(xq); tr = np.gradient(rq); tn = np.hypot(tx, tr); nx, nr = -tr 
 SP, SN = [], []
 for xi, ri, nxi, nri in zip(xq, rq, nx, nr):
     full = RIM[0] < xi < RIM[1]
-    t0 = 0.0 if full else TH_CUT
+    t0 = 0.0 if full else float(CUT(xi))
     n = int(np.ceil(2 * np.radians(180 - t0) * ri / DS))
     a = np.radians(np.linspace(t0, 360 - t0, n, endpoint=not full))
     sa, ca = np.sin(a), np.cos(a)
@@ -177,6 +186,7 @@ inside = np.zeros(len(SP), bool)
 for sd in (+1, -1):
     xc_, zc_, r_, ye_ = TRUN[sd]
     inside |= (np.sign(sdy) == sd) & (np.abs(sdy) < ye_) & (np.hypot(SP[:, 0] - xc_, sdz - zc_) < r_)
+inside |= (SP[:, 0] > 206.4) & (huella.query(np.c_[sdy, sdz], distance_upper_bound=0.5)[0] < 0.5)
 SP, SN = SP[~inside], SN[~inside]
 log("synthetic body", len(SP))
 
@@ -213,8 +223,9 @@ m2 = ms2.current_mesh(); PV = m2.vertex_matrix().copy(); PF = m2.face_matrix()
 rho, th, dy, dz = cyl(PV); x = PV[:, 0]; ath = np.abs(th)
 nt = np.zeros(len(PV), bool)
 for sd in (+1, -1): nt |= in_trunnion(x, dy, dz, sd, 0.9)
-w = smooth(TH_BLEND - 3, TH_BLEND + 9, ath) * smooth(X0, X0 + 0.3, x) * (1 - smooth(X1 - 0.3, X1, x)) * ~nt
-w = np.maximum(w, smooth(RIM[0], RIM[0] + 0.3, x) * (1 - smooth(RIM[1] - 0.3, RIM[1], x)) * ~nt)
+w = smooth(-3, 9, ath - BLEND(x)) * smooth(X0, X0 + 0.3, x) * (1 - smooth(X1 - 0.3, X1, x)) * ~nt
+w = np.maximum(w, smooth(RIM[0], RIM[0] + 0.3, x) * (1 - smooth(RIM[1] - RAMPA, RIM[1] + RAMPA, x)) * ~nt)
+w *= ~CUELLO(x, dy, rho)
 sx = smooth(XS0 - 0.3, XS0 + 0.3, x)
 w *= np.where(sx < 0.5, np.abs(rho - R(x)) < 0.35, np.abs(x - Xinv(rho)) < 0.35)   # solo la piel de revolución
 # coordenada de textura = longitud de arco sobre el perfil (en la cara del plato x apenas cambia: evita rayas radiales)

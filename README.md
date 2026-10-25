@@ -61,6 +61,10 @@
 |---|---|
 | ![plato](docs/img/24_plato_trasero_roto_vs_recreado.jpg) | ![plato final](docs/img/25_plato_trasero_final.jpg) |
 
+En la **cúpula trasera** el escaneo tiene menos datos y su borde está deshilachado. Ahí el corte sube a 80° desde arriba, se protege solo el volumen del cascabel y se alisan las láminas sueltas que quedan cerca (`cupula_post.py`):
+
+![tapa v8](docs/img/27_tapa_trasera_v8.jpg)
+
 Las **molduras** se afilan con una máscara de enfoque aplicada al perfil medido (σ 0,12 mm), en todo el contorno, para que los anillos tengan el canto marcado:
 
 ![molduras](docs/img/26_culata_molduras_v7.jpg)
@@ -121,12 +125,14 @@ Los escudos reciben un **realce del relieve medido, sin suavizar**: el suavizado
 
 | Hallazgo | Confianza | Evidencia |
 |---|---|---|
-| Año de fundición **1654** (culata) | Alta en «165·», media en la última cifra | Mapa de relieve con paso alto |
-| Fundidor **Ivan (Jan) ter Horst**, Sevilla | Alta | Inscripción de la culata |
+| Año de fundición **1654** (culata) | **Confirmado**: coincide con la lectura oficial de los sellos (Sevilla, 1654) | Mapa de relieve con paso alto |
+| Fundidor **Ivan (Jan) ter Horst**, Sevilla | Alta en la lectura; probablemente el «Juan Fers Hors» de los cañones de Tenerife de 1651 y 1653 | Inscripción de la culata |
 | Placa del **marqués de Leganés**, Capitán General de la Artillería | Alta en el renglón 1; la fórmula, por comparación | Luz rasante + placa de referencia de otro cañón |
 | Escudo con arco junto a la placa: armas de los Guzmán (Leganés) | Media | Posición y fórmula |
 | Las dos asas proceden del mismo molde | Alta | Diferencia mediana de 0,08 mm tras el ICP |
 | El cascabel está girado unos 7° sobre el eje | Alta | Simetría por ICP |
+
+La validación con fuentes públicas está en [docs/VALIDACION_HISTORICA.md](docs/VALIDACION_HISTORICA.md).
 
 ## 8. Lo que no funcionó (y por qué)
 
